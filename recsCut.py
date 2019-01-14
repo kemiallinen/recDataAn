@@ -1,0 +1,1 @@
+corename = 'C:\\Users\\Niemiec\\Documents\\PHD\\DATA'
