@@ -4,10 +4,11 @@ import librosa
 from pandas import DataFrame
 import os
 from scipy.io.wavfile import read
+import matplotlib.pyplot as plt
 from utils import *
 
 corename = 'D:\\phd\\DATA'
-recordings_core = corename + '\\test_recordings'
+recordings_core = corename + '\\recordings'
 
 df = DataFrame(columns=["initials", "path", "sentence", "mod",
                         "f0mean", "f0t", "mfcc", "specgram"])
@@ -33,7 +34,6 @@ for speaker_directory in os.listdir(recordings_core):
 
     # dla nagrania
     for wavname in os.listdir(recordings_core + '\\' + speaker_directory):
-        # wavname = '\\recordings\\01_ZL\\01_ZL_001.wav'
 
         rate, signal = read(recordings_core + '\\' + speaker_directory + '\\' + wavname)
         ts = np.arange(0, len(signal) / float(rate), 1.0 / rate)
