@@ -1,29 +1,33 @@
 from librosa.feature import mfcc
 from librosa.display import specshow
 import librosa
+import numpy as np
 from pandas import DataFrame
+import csv
 import os
 from scipy.io.wavfile import read
-import matplotlib.pyplot as plt
-from utils import *
+from matplotlib.pyplot import figure, savefig, axis, close
+from Signal_Analysis.features.signal import get_F_0, get_HNR, get_Jitter
 
 corename = 'D:\\phd\\DATA'
-recordings_core = corename + '\\recordings'
+recordings_core = corename + '\\test_recordings'
 
+# create dataframe
 df = DataFrame(columns=["initials", "path", "sentence", "mod",
-                        "f0mean", "f0t", "mfcc", "specgram"])
+                        "F0_mean", "HNR", "jitter", "MFCC", "specgram"])
 
 for speaker_directory in os.listdir(recordings_core):
 
-    # dla osoby
-    txtfname = '\\sentences\\' + speaker_directory[:2] + '.txt'
+    # read csv file containing sentences and mod info (n/h/l)
+    txtfname = '\\sentences\\' + speaker_directory[:2] + '.csv'
     sentences = []
-    textfile = open(corename + txtfname, 'r')
-    for line in textfile:
-        fields = line.split('\t')
-        sentences.append(fields[1][:-1])
-    textfile.close()
 
+    with open(corename + txtfname, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=';')
+        for row in reader:
+            sentences.append(row)
+
+    # prepare dirs for mfccs and specgrams
     mfcc_dir_name = corename + '\\mfcc\\' + speaker_directory
     if not os.path.isdir(mfcc_dir_name):
         os.mkdir(mfcc_dir_name)
@@ -32,43 +36,44 @@ for speaker_directory in os.listdir(recordings_core):
     if not os.path.isdir(specgram_dir_name):
         os.mkdir(specgram_dir_name)
 
-    # dla nagrania
     for wavname in os.listdir(recordings_core + '\\' + speaker_directory):
 
+        # load wave
         rate, signal = read(recordings_core + '\\' + speaker_directory + '\\' + wavname)
-        ts = np.arange(0, len(signal) / float(rate), 1.0 / rate)
-        winLen = 2 * 4096 / 44100
-        window = np.hanning(int(winLen * rate / 2) * 2)
-        signalBuffered = buffer(signal, len(window), int(len(window) / 2))
-        recF0mean, recArrF0 = f0(signalBuffered, rate, winLen, window)
 
-        # preprocessing (conversion to float for librosa)
+        # get f0, Harmonic-to-Noise Ratio (HNR) and jitter values
+        recF0mean = get_F_0(signal, rate, min_pitch=70, max_pitch=600)
+        hnr = get_HNR(signal, rate)
+        jttr = get_Jitter(signal, rate)
+
+        # librosa:: preprocessing (conversion to float)
         signal = signal / float(2 ** 15)
 
-        # librosa specgram
+        # librosa:: generate specgram and save to relevant dir
         D = librosa.stft(signal)
-        plt.figure()
+        figure()
         specshow(librosa.amplitude_to_db(librosa.magphase(D)[0], ref=np.max))
-        plt.axis('off')
-        plt.savefig(specgram_dir_name + '\\' + wavname[-10:-4] + '.png', dpi=200)
-        plt.close()
+        axis('off')
+        savefig(specgram_dir_name + '\\' + wavname[-10:-4] + '.png', dpi=200)
+        close()
 
-        # librosa MFCC
+        # librosa:: calculate MFCC's (n_mfcc=20) and save *.npy file to relevant dir
         recMFCC = mfcc(signal)
         np.save(mfcc_dir_name + '\\' + wavname[-10:-4], recMFCC)
 
-        # export data to tinydb
+        # export data to pandas dataframe
+        count = int(wavname[-7:-4])-1
         df = df.append({"initials": wavname[-10:-8],
                         "path": wavname,
-                        "sentence": sentences[int(wavname[-7:-4]) - 1],
-                        "mod": "n",
-                        "f0mean": recF0mean,
-                        "f0t": [recArrF0],
-                        "mfcc": mfcc_dir_name + '\\' + wavname[-10:-4] + '.npy',
+                        "sentence": sentences[count][0],
+                        "mod": sentences[count][1][0],
+                        "F0_mean": recF0mean,
+                        "HNR": hnr,
+                        "jitter": [jttr],
+                        "MFCC": mfcc_dir_name + '\\' + wavname[-10:-4] + '.npy',
                         "specgram": specgram_dir_name + '\\' + wavname[-10:-4] + '.png'},
                        ignore_index=True)
 
-        print(df)
         print('Recording {} done'.format(wavname))
 
-df.to_csv('D:\\phd\\phdDB.csv', index=True, header=True, encoding='utf-8')
+df.to_csv('D:\\phd\\phdDB_test.csv', index=True, header=True, encoding='utf-8')
