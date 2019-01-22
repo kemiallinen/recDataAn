@@ -67,7 +67,7 @@ for speaker_directory in os.listdir(recordings_core):
                         "path": wavname,
                         "sentence": sentences[count][0],
                         "mod": sentences[count][1][0],
-                        "F0_mean": recF0mean,
+                        "F0_mean": recF0mean[0],
                         "HNR": hnr,
                         "jitter": [jttr],
                         "MFCC": mfcc_dir_name + '\\' + wavname[-10:-4] + '.npy',

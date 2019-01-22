@@ -1,5 +1,6 @@
 import numpy as np
 from Signal_Analysis.features.signal import get_F_0
+import hashlib
 
 
 def buffer(x, n, p=0, opt=None):
@@ -78,3 +79,15 @@ def f0(signal_buffered, rate, win_len, window):
     f0mean = np.round(np.sum(arr_f0['freq']) / float(np.count_nonzero(arr_f0['freq'])), 2)
 
     return f0mean, arr_f0
+
+
+def create_uid(user_record):
+    '''
+
+    :param user_record:
+    :return: first 8 signs of sha1 encoded message
+    '''
+    message = ''
+    for elt in user_record:
+        message += elt
+    return hashlib.sha1(message.encode("UTF-8")).hexdigest()[:8]
