@@ -1,3 +1,5 @@
+# TODO: normalize all audio files by RMS (future?)
+
 from librosa.feature import mfcc
 from librosa.display import specshow
 import librosa

@@ -1,6 +1,4 @@
 import numpy as np
-from Signal_Analysis.features.signal import get_F_0
-import hashlib
 
 
 def buffer(x, n, p=0, opt=None):
@@ -66,6 +64,7 @@ def buffer(x, n, p=0, opt=None):
 
 
 def f0(signal_buffered, rate, win_len, window):
+    from Signal_Analysis.features.signal import get_F_0
     arr_f0 = {'t': [], 'freq': []}
     current_time = 0
 
@@ -87,7 +86,12 @@ def create_uid(user_record):
     :param user_record:
     :return: first 8 signs of sha1 encoded message
     '''
+    import hashlib
     message = ''
     for elt in user_record:
         message += elt
     return hashlib.sha1(message.encode("UTF-8")).hexdigest()[:8]
+
+
+def rms(signal):
+    return (np.sum(signal**2)/len(signal))**(1/2)

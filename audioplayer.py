@@ -1,7 +1,5 @@
 # Basic Python Music Player - using tkinter and pygame
 # based on: https://github.com/aglla/pyprojects/blob/master/music-player.py
-# TODO: SNR adjustment
-# TODO: normalize all audio files by RMS (future?)
 # TODO: welcome window with a simple survey and a short experiment info
 
 from tkinter import *
@@ -12,6 +10,8 @@ from pygame.sndarray import make_sound
 from PIL import Image, ImageTk
 import pandas as pd
 import numpy as np
+import os
+from utils import rms
 
 
 class App(Frame):
@@ -29,6 +29,8 @@ class App(Frame):
         self.rate = 44100
         self.play_count = 0
         self.turning_points = 0
+        self.target_SNR = 6
+        self.step = 3
         self.log = pd.DataFrame(columns=["play_count", "same_speaker", "sig1_name", "sig2_name",
                                          "SNR", "correct", "turning_points"])
 
@@ -99,11 +101,20 @@ class App(Frame):
         else:
             self.same_speaker = False
 
-        _, sig1 = read(self.corename + '\\' + self.random_picks.values[0][1])
-        _, sig2 = read(self.corename + '\\' + self.random_picks.values[1][1])
+        _, sig1_int = read(self.corename + '\\' + self.random_picks.values[0][1])
+        _, sig2_int = read(self.corename + '\\' + self.random_picks.values[1][1])
 
-        self.mix = np.concatenate((sig1, np.zeros(int(0.5 * self.rate), dtype='int16'), sig2))
-        self.mix += np.random.randint(-2 ** 10, 2 ** 10, size=self.mix.shape, dtype='int16')
+        sig1 = sig1_int / 2**15
+        sig2 = sig2_int / 2**15
+
+        self.mix = np.concatenate((sig1, np.zeros(int(0.5 * self.rate), dtype='float32'), sig2))
+# TODO: replace noise with babble
+        noise = 0.2 * np.random.rand(*self.mix.shape) - 0.1
+
+        self.mix *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(self.mix)
+        self.mix += noise
+        self.mix *= 2**15
+        self.mix = self.mix.astype(dtype='int16')
 
     def same(self, event=None):
         self.log_record(self.same_speaker == True)
@@ -121,12 +132,19 @@ class App(Frame):
                                     "same_speaker": self.same_speaker,
                                     "sig1_name": self.random_picks.values[0][1].split(sep='\\')[-1],
                                     "sig2_name": self.random_picks.values[1][1].split(sep='\\')[-1],
-                                    "SNR": 0,
+                                    "SNR": self.target_SNR,
                                     "correct": ans,
                                     "turning_points": self.turning_points},
                                    ignore_index=True)
+
+        if ans:
+            self.target_SNR -= self.step
+        else:
+            self.target_SNR += self.step
+
         if self.verbose:
-            print(self.log[['correct', 'turning_points']])
+            os.system('cls')
+            print(self.log[['play_count', 'SNR', 'correct', 'turning_points']])
 
         if self.turning_points == self.stop_after:
             self.stop_and_save()
