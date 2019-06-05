@@ -1,6 +1,11 @@
-# Basic Python Music Player - using tkinter and pygame
-# based on: https://github.com/aglla/pyprojects/blob/master/music-player.py
-# TODO: welcome window with a simple survey and a short experiment info
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Basic Python Music Player - using tkinter and pygame
+based on: https://github.com/aglla/pyprojects/blob/master/music-player.py
+TODO: welcome window with a simple survey and a short experiment info
+'''
 
 from tkinter import *
 from tkinter import messagebox
@@ -20,12 +25,14 @@ class App(Frame):
         super(App, self).__init__(master)
 
         # TEST SETTINGS, CHANGE BEFORE RUN
-        self.db = pd.read_csv('D:\\phd\\phdDB_test.csv', sep=',', index_col=0)
+        # self.db = pd.read_csv('D:\\phd\\phdDB_test.csv', sep=',', index_col=0)
+        self.db = pd.read_csv('E:\\PhD\\recDataAn\\phdDB_test.csv', sep=',', index_col=0)
         self.stop_after = 2
         self.verbose = True
         # END OF TEST SETTINGS
 
-        self.corename = 'D:\\phd\\DATA'
+        # self.corename = 'D:\\phd\\DATA'
+        self.corename = 'E:\\PhD\\recDataAn'
         self.rate = 44100
         self.play_count = 0
         self.turning_points = 0
@@ -107,11 +114,13 @@ class App(Frame):
         sig1 = sig1_int / 2**15
         sig2 = sig2_int / 2**15
 
-        self.mix = np.concatenate((sig1, np.zeros(int(0.5 * self.rate), dtype='float32'), sig2))
 # TODO: replace noise with babble
-        noise = 0.2 * np.random.rand(*self.mix.shape) - 0.1
+        noise = 0.2 * np.random.rand(len(sig1) + int(0.5 * self.rate) + len(sig2)) - 0.1
 
-        self.mix *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(self.mix)
+        sig1 *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(sig1)
+        sig2 *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(sig2)
+
+        self.mix = np.concatenate((sig1, np.zeros(int(0.5 * self.rate), dtype='float32'), sig2))
         self.mix += noise
         self.mix *= 2**15
         self.mix = self.mix.astype(dtype='int16')
