@@ -25,18 +25,19 @@ class App(Frame):
         super(App, self).__init__(master)
 
         # TEST SETTINGS, CHANGE BEFORE RUN
-        # self.db = pd.read_csv('D:\\phd\\phdDB_test.csv', sep=',', index_col=0)
-        self.db = pd.read_csv('E:\\PhD\\recDataAn\\phdDB_test.csv', sep=',', index_col=0)
+        self.db = pd.read_csv('D:\\phd\\phdDB_test.csv', sep=',', index_col=0)
+        # self.db = pd.read_csv('E:\\PhD\\recDataAn\\phdDB_test.csv', sep=',', index_col=0)
         self.stop_after = 2
         self.verbose = True
         # END OF TEST SETTINGS
 
-        # self.corename = 'D:\\phd\\DATA'
-        self.corename = 'E:\\PhD\\recDataAn'
+        self.corename = 'D:\\phd\\DATA'
+        # self.corename = 'E:\\PhD\\recDataAn'
         self.rate = 44100
         self.play_count = 0
         self.turning_points = 0
         self.target_SNR = 6
+        _, self.babble = read('babble.wav')
         self.step = 3
         self.log = pd.DataFrame(columns=["play_count", "same_speaker", "sig1_name", "sig2_name",
                                          "SNR", "correct", "turning_points"])
@@ -114,8 +115,7 @@ class App(Frame):
         sig1 = sig1_int / 2**15
         sig2 = sig2_int / 2**15
 
-# TODO: replace noise with babble
-        noise = 0.2 * np.random.rand(len(sig1) + int(0.5 * self.rate) + len(sig2)) - 0.1
+        noise = self.babble[:len(sig1) + int(0.5 * self.rate) + len(sig2)] / 2**15
 
         sig1 *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(sig1)
         sig2 *= (rms(noise) * 10 ** (self.target_SNR / 20)) / rms(sig2)
