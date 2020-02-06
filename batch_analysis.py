@@ -2,48 +2,42 @@ from librosa.feature import mfcc
 from librosa.display import specshow
 import librosa
 import numpy as np
-from pandas import DataFrame
-import pandas as pd
-import csv
+from pandas import DataFrame, read_csv
 import os
 from scipy.io.wavfile import read
 from matplotlib.pyplot import figure, savefig, axis, close
 from Signal_Analysis.features.signal import get_F_0, get_HNR, get_Jitter
+import time
 
+
+start_time = time.time()
 corename = 'D:\\phd\\DATA'
 recordings_core = '\\test_recordings'
 speakers_csvname = 'D:\\phd\\SpeakerData.csv'
 
-speakers = pd.read_csv(speakers_csvname, sep=';', index_col=0)
+speakers = read_csv(speakers_csvname, sep=';', index_col=0)
 
 # create dataframe
 df = DataFrame(columns=["id", "sex", "path", "sentence", "mod",
                         "F0_mean", "HNR", "jitter", "MFCC", "specgram"])
 
 for speaker_directory in os.listdir(corename + recordings_core):
-
     # read csv file containing sentences and mod info (n/h/l)
     txtfname = '\\sentences\\' + speaker_directory[:2] + '.csv'
-    sentences = []
-
     speaker_sex = speakers['sex'].loc[speakers['prefix'] == speaker_directory].values[0]
-
-    with open(corename + txtfname, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=';')
-        for row in reader:
-            sentences.append(row)
+    sentences = read_csv(corename + txtfname, sep=';', encoding='cp1250',
+                         names=['sentence', 'mod'])
 
     # prepare dirs for mfccs and specgrams
     mfcc_dir_name = '\\mfcc\\' + speaker_directory
     if not os.path.isdir(corename + mfcc_dir_name):
         os.mkdir(corename + mfcc_dir_name)
-
     specgram_dir_name = '\\specgrams\\' + speaker_directory
     if not os.path.isdir(corename + specgram_dir_name):
         os.mkdir(corename + specgram_dir_name)
 
+    # iterate through all recordings in a given directory
     for wavname in os.listdir(corename + recordings_core + '\\' + speaker_directory):
-
         # load wave
         rate, signal = read(corename + recordings_core + '\\' + speaker_directory + '\\' + wavname)
 
@@ -72,8 +66,8 @@ for speaker_directory in os.listdir(corename + recordings_core):
         df = df.append({"id": wavname[:-8],
                         "sex": speaker_sex,
                         "path": recordings_core + '\\' + speaker_directory + '\\' + wavname,
-                        "sentence": sentences[count][0],
-                        "mod": sentences[count][1][0],
+                        "sentence": sentences.iloc[count]['sentence'],
+                        "mod": sentences.iloc[count]['mod'][0],
                         "F0_mean": recF0mean[0],
                         "HNR": hnr,
                         "jitter": [jttr],
@@ -84,3 +78,4 @@ for speaker_directory in os.listdir(corename + recordings_core):
         print('Recording {} done'.format(wavname))
 
 df.to_csv('D:\\phd\\phdDB_test.csv', index=True, header=True, encoding='utf-8')
+print('--- %s seconds ---' % (time.time() - start_time))
