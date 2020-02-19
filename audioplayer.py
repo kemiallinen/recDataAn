@@ -39,7 +39,7 @@ class App(Frame):
         self.target_SNR = 6
         self.babble = {'f': read(self.corename + '\\noises\\babble_f_mod-n.wav')[1],
                        'm': read(self.corename + '\\noises\\babble_m_mod-n.wav')[1]}
-        self.step = 3
+        self.step = 1
         self.log = pd.DataFrame(columns=["play_count", "same_speaker", "sig1_name", "sig2_name",
                                          "SNR", "correct", "turning_points"])
 
@@ -104,8 +104,10 @@ class App(Frame):
 
     def prepare_mix(self):
         sex = np.random.choice(['f', 'm'], 1)[0]
+        speakers = np.random.choice(self.db.groupby('sex')['id'].unique()[sex], 2)
         self.random_picks = self.db[['id', 'path']].loc[(self.db['sex'] == sex) &
-                                                        (self.db['mod'] == 'n')].sample(n=2)
+                                                        (self.db['mod'] == 'n') &
+                                                        (self.db['id'].isin(speakers))].sample(n=2)
         if self.random_picks.values[0][0] == self.random_picks.values[1][0]:
             self.same_speaker = True
         else:

@@ -2,7 +2,7 @@ import numpy as np
 from librosa import load
 from librosa.feature import mfcc, delta
 from scipy.signal import hanning
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 filename = 'D:\\phd\\DATA\\recordings\\01_ZL\\01_ZL_001.wav'
